@@ -16,14 +16,22 @@ Code comment, i.e., the natural language text to describe code, is considered as
 
 ## Get Started
 
-Install PyTorch. The code has been tested with CUDA 11.2/CuDNN 8.1.0, PyTorch 1.8.1.
+Install PyTorch, prettify_js, cv2, html2image. 
+The code has been tested with CUDA 11.2/CuDNN 8.1.0, PyTorch 1.8.1.
 
 First, prepare pre-training datasets through [CodeSearchNet](https://github.com/github/CodeSearchNet). 
 
 #### 1. Pre-process
 
 The codes for rendering the source code texts, highlighting syntax with colors and patching are shown in visualize_patching directory.
-
+First, read the data from the jsonl files of CodeSearchNet and convert them to images.
+Then, split the visual renderings of the images by line.
+```
+python render_highlight_patching.py
+```
+Then, the visual renderings of the codes will be stored in the 'renderings' folder.
+Inside each folder, the corresponding code snippet is stored in 'X_0.jpg', with the following 
+line patches following, i.e., 'X_1.jpg ... X_len.jpg'.
 #### 2. Model
 
 The core model of our FOSTERER is shown in foster.py.

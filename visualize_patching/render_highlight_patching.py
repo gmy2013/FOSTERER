@@ -6,8 +6,8 @@ import imgkit
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-
-
+import json
+import os
 def load_code(path):
     code = []
     print(path)
@@ -19,11 +19,11 @@ def load_code(path):
 
 def from_to_file(in_path, out_path, lang):
     code = load_code(in_path)
-    image = render(code, lang)
-    image.save(out_path)
+    image = render(code, lang, out_path)
+    #image.save(out_path)
 
 
-def render(code, lang):
+def render(code, lang, out_path):
     # uses https://github.com/google/code-prettify for syntax highlighting
     jslib = get_js_library()
     html_page = """
@@ -87,9 +87,12 @@ def render(code, lang):
     with open("generate.html", "w") as fp:
         fp.write(html_page)
     #print(html_page)
-    image_raw = imgkit.from_string(html_page, False, options)
-    return Image.open(io.BytesIO(image_raw))
-
+    from html2image import Html2Image
+    hti = Html2Image()
+    css = "body {background: white;}"
+    hti.screenshot(html_str=html_page, css_str=css, save_as=out_path)
+    #image_raw = imgkit.from_string(html_page, False, options)
+    #return Image.open(io.BytesIO(image_raw))
 
 def divide(img,m,n):
     h, w = img.shape[0],img.shape[1]
@@ -114,15 +117,17 @@ def display_blocks(divide_image):#
         for j in range(n):
             plt.subplot(m,n,i*n+j+1)
             plt.imshow(divide_image[i,j,:])
+            img = Image.fromarray(divide_image[i, j, :], "RGB")
+            img.save(str(i)+'.jpg')
             plt.axis('off')
     plt.show()
-
-if __name__ == "__main__":
+def render_one_file():
     from_to_file("test.java", "generate.png", "Java") # Replace with the path to the source code file and path to store the png
     with open("test.java", "r") as fp:  # Replace with the input source code file
         lines = fp.readlines()
         len = len(''.join(lines).split('\n'))
     img = cv2.imread('generate.png')
+    img = img[0:0+int(len*15),0:1000]
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     h, w = img.shape[0], img.shape[1]
     fig1 = plt.figure('Image')
@@ -132,4 +137,33 @@ if __name__ == "__main__":
     print('\t\t\t   shape:\n', '\t\t\t', img.shape)
     divide_img = divide(img, len + 1, 2)
     display_blocks(divide_img)
+
+def render_all_files(path, out_path):
+    with open(path, 'r', encoding='utf-8') as fp:
+        lines = fp.read().splitlines()
+        for i in range(0, len(lines)):
+            if not os.path.exists('renderings/' + str(i)):
+               os.mkdir('renderings/' + str(i))
+            if i > 10:
+                break
+            cur = json.loads(lines[i])
+            code = cur['code']
+            image = render(code, "Java", out_path)
+            code_len = len(code.split('\n'))
+            img = cv2.imread('generate.png')
+            img = img[0:0 + int(code_len * 15), 0:1000]
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            full_img = Image.fromarray(img, "RGB")
+            full_img.save(r'renderings\\' + str(i) + r'\\' + str(i) + '_' + str(0) + '.jpg')
+            divide_image = divide(img, code_len + 1, 2)
+            m, n = divide_image.shape[0], divide_image.shape[1]
+            for k in range(m):
+                for j in range(n):
+                    img = Image.fromarray(divide_image[k, j, :], "RGB")
+                    img.save(r'renderings\\'+str(i)+r'\\'+str(i)+'_'+str(k+1) + '.jpg')
+
+if __name__ == "__main__":
+    render_all_files('train.jsonl', "generate.png")
+
+
 
